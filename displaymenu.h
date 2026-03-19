@@ -12,6 +12,7 @@ class cFlatDisplayMenu : public cFlatBaseRender,  public cSkinDisplayMenu {
         int VideoDiskUsageState;
     
         int contentTop;
+	cString recErrors;
     
         cPixmap *scrollbarPixmap;
         int scrollBarTop, scrollBarWidth, scrollBarHeight;
