@@ -14,7 +14,7 @@ cString GetExternalTemp(void) {
 
     FILE *fp;
     char path[16];
-    fp = popen("mosquitto_sub -h 192.168.12.10 -W 1 -t 'home/clima/tout' -u 'tasmota' -P 'atomsat' -C 1", "r");
+    fp = popen("mosquitto_sub -h 192.168.12.10 -W 1 -t 'home/clima/tout' -u 'USER' -P 'PASSWORD' -C 1", "r");
 
     if (fp != NULL) {
         if (fgets(path, sizeof(path), fp) != NULL) {
