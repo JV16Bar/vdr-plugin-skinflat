@@ -226,7 +226,18 @@ void cFlatDisplayMenu::SetRecording(const cRecording *Recording) {
     menuPixmap->DrawRectangle(cRect(0, 0, menuWidth, fontHeight + fontSmlHeight*2 + marginItem*2), Theme.Color(clrScrollbarBg));
 
     const cRecordingInfo *recInfo = Recording->Info();
-    cString timeString = cString::sprintf("%s  %s  %s", *DateString(Recording->Start()), *TimeString(Recording->Start()), recInfo->ChannelName() ? recInfo->ChannelName() : "");
+
+    int errors = recInfo->Errors();
+    recErrors = (errors >= 0) ? cString::sprintf(" - %s: %d", tr("Errors"), errors) : "";
+
+    const char *errText = (errors == 1) ? tr("error") : tr("errors");
+    recErrors = cString::sprintf(" - %d %s", errors, errText);
+
+    cString timeString = cString::sprintf("%s %s %s%s",
+ 		   	 *DateString(Recording->Start()),
+			 *TimeString(Recording->Start()),
+			 recInfo->ChannelName() ? recInfo->ChannelName() : "",
+			 *recErrors);
 
     cString title = recInfo->Title();
     if( isempty(title) )

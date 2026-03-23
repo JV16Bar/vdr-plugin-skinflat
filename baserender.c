@@ -1,6 +1,34 @@
 #include "baserender.h"
 #include "flat.h"
 
+cString GetExternalTemp(void) {
+    static time_t lastUpdate = 0;
+    static cString cachedTemp; // Itt ne adjunk neki értéket, így alapból NULL lesz
+    time_t now = time(NULL);
+
+    // VDR-ben a *cachedTemp a belső char* pointert adja vissza.
+    // Ha nem NULL és 5 percen belül vagyunk, mehet vissza a cache.
+    if (now - lastUpdate < 300 && *cachedTemp) {
+        return cachedTemp;
+    }
+
+    FILE *fp;
+    char path[16];
+    fp = popen("mosquitto_sub -h 192.168.12.10 -W 1 -t 'home/clima/tout' -u 'tasmota' -P 'atomsat' -C 1", "r");
+
+    if (fp != NULL) {
+        if (fgets(path, sizeof(path), fp) != NULL) {
+            strtok(path, "\n");
+            cachedTemp = cString::sprintf("%s°C", path);
+            lastUpdate = now;
+        }
+        pclose(fp);
+    }
+
+    // Ha a legelső lekérés nem sikerülne, egy üres cString-et adunk vissza
+    return *cachedTemp ? cachedTemp : "";
+}
+
 cFlatBaseRender::cFlatBaseRender(void) {
     font = cFont::CreateFont(Setup.FontOsd, Setup.FontOsdSize );
     fontSml = cFont::CreateFont(Setup.FontSml, Setup.FontSmlSize);
@@ -118,7 +146,7 @@ void cFlatBaseRender::TopBarUpdate(void) {
         time(&t);
 
         cString time = TimeString(t);
-        cString time2 = cString::sprintf("%s %s", *time, tr("clock"));
+        cString time2 = cString::sprintf("%s", *time);
 
         int timeWidth = font->Width(*time2) + marginItem*2;
         topBarPixmap->DrawText(cPoint(osdWidth - timeWidth, fontTop), time2, Theme.Color(clrTopBarTimeFont), Theme.Color(clrTopBarBg), font);
@@ -129,8 +157,15 @@ void cFlatBaseRender::TopBarUpdate(void) {
         cString date = ShortDateString(t);
         int dateWidth = fontSml->Width(*date);
 
+	cString extTemp = GetExternalTemp();
+        int tempWidth = font->Width(*extTemp) + marginItem*2;
+
         int fullWidth = max(weekdayWidth, dateWidth);
 
+ 	int tempX = osdWidth - timeWidth - fullWidth - marginItem*2 - tempWidth - 20;
+
+	// Kirajzoljuk a pixmap-re (nem az osd-re közvetlenül)
+        topBarPixmap->DrawText(cPoint(tempX, fontTop), extTemp, Theme.Color(clrTopBarDateFont), Theme.Color(clrTopBarBg), font);
         topBarPixmap->DrawText(cPoint(osdWidth - timeWidth - fullWidth - marginItem*2, fontSmlTop), weekday, Theme.Color(clrTopBarDateFont), Theme.Color(clrTopBarBg), fontSml, fullWidth, 0, taCenter);
         topBarPixmap->DrawText(cPoint(osdWidth - timeWidth - fullWidth - marginItem*2, fontSmlTop + fontSmlHeight), date, Theme.Color(clrTopBarDateFont), Theme.Color(clrTopBarBg), fontSml, fullWidth, 0, taCenter);
     }
